@@ -253,48 +253,15 @@ docker-compose build --no-cache
 
 ## Testing
 
-### Testing Documentation
-
-- **Complete Testing Flow**: See [TESTING_FLOW.md](./TESTING_FLOW.md) for step-by-step testing guide
-- **Testing Checklist**: See [TESTING_CHECKLIST.md](./TESTING_CHECKLIST.md) for detailed checklist
-
 ### Run Test Scripts
 
 ```bash
-# Test Phase 1 & 2 (Infrastructure and Models)
-npm run test:phase1-2
 
 # Run comprehensive test suite
 npm run test:comprehensive
 # Or
 node scripts/test-comprehensive.js
 ```
-
-### Manual Testing
-
-1. **Register a user**:
-```bash
-curl -X POST http://localhost:3001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-```
-
-2. **Login**:
-```bash
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-```
-
-3. **Create a note** (use token from login):
-```bash
-curl -X POST http://localhost:3001/api/notes \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{"title":"My Note","content":"Note content"}'
-```
-
-See `scripts/test-comprehensive.js` for detailed test scenarios.
 
 ## Project Structure
 
