@@ -1,0 +1,80 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: note-api-mysql
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-note_taking_db}
+      MYSQL_USER: ${DB_USER:-noteuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-notepassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - note-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: note-api-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - note-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: note-api-app
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-note_taking_db}
+      - DB_USER=${DB_USER:-noteuser}
+      - DB_PASSWORD=${DB_PASSWORD:-notepassword}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - PORT=${PORT:-3001}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - note-network
+    command: npm run dev
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  note-network:
+    driver: bridge
+
