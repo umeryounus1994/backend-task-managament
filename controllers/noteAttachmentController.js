@@ -107,6 +107,19 @@ const getAttachments = async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user.id;
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.'
+      });
+    }
+
     // Verify note exists and belongs to user (or is shared with user)
     const note = await Note.findOne({
       where: {
@@ -139,14 +152,26 @@ const getAttachments = async (req, res, next) => {
       });
     }
 
-    // Get all attachments
+    // Get total count
+    const total = await NoteAttachment.count({
+      where: {
+        noteId: id
+      }
+    });
+
+    // Get paginated attachments
     const attachments = await NoteAttachment.findAll({
       where: {
         noteId: id
       },
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'noteId', 'fileType', 'fileName', 'filePath', 'fileSize', 'mimeType', 'createdAt']
+      attributes: ['id', 'noteId', 'fileType', 'fileName', 'filePath', 'fileSize', 'mimeType', 'createdAt'],
+      limit,
+      offset
     });
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
@@ -154,7 +179,14 @@ const getAttachments = async (req, res, next) => {
       data: {
         noteId: parseInt(id),
         attachments,
-        count: attachments.length
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        }
       }
     });
   } catch (error) {

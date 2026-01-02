@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const noteShareController = require('../controllers/noteShareController');
 const { authenticate } = require('../middleware/auth');
 
@@ -13,52 +13,38 @@ router.use(authenticate);
  *   get:
  *     summary: Get all notes shared with the authenticated user
  *     tags: [Note Sharing]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
- *       200:
- *         description: Shared notes retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Shared notes retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     notes:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           note:
- *                             $ref: '#/components/schemas/Note'
- *                           permission:
- *                             type: string
- *                             enum: [read, edit]
- *                           sharedAt:
- *                             type: string
- *                             format: date-time
- *                           sharedBy:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: integer
- *                               email:
- *                                 type: string
- *                     count:
- *                       type: integer
- *       401:
- *         description: Unauthorized
+ *       200: { $ref: '#/components/responses/Success' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.get(
   '/shared',
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
+  ],
   noteShareController.getSharedNotes
 );
 
@@ -68,59 +54,22 @@ router.get(
  *   post:
  *     summary: Share a note with another user
  *     tags: [Note Sharing]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ShareNoteRequest'
- *           example:
- *             sharedWithUserId: 2
- *             permission: read
+ *         'application/json': { schema: { $ref: '#/components/schemas/ShareNoteRequest' } }
  *     responses:
- *       201:
- *         description: Note shared successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note shared successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     share:
- *                       $ref: '#/components/schemas/NoteShare'
- *                     sharedWith:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: integer
- *                         email:
- *                           type: string
- *       400:
- *         description: Validation error or cannot share with yourself
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Note or user not found
- *       409:
- *         description: Note already shared with this user
+ *       201: { $ref: '#/components/responses/Created' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       404: { $ref: '#/components/responses/NotFound' }
+ *       409: { $ref: '#/components/responses/Conflict' }
  */
 router.post(
   '/:id/share',
@@ -144,56 +93,26 @@ router.post(
  *   put:
  *     summary: Update share permission
  *     tags: [Note Sharing]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *       - in: path
  *         name: shareId
  *         required: true
  *         schema:
  *           type: integer
- *         description: Share ID
- *         example: 1
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateShareRequest'
- *           example:
- *             permission: edit
+ *         'application/json': { schema: { $ref: '#/components/schemas/UpdateShareRequest' } }
  *     responses:
- *       200:
- *         description: Share permission updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Share permission updated successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     share:
- *                       $ref: '#/components/schemas/NoteShare'
- *       400:
- *         description: Validation error
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Note or share not found
+ *       200: { $ref: '#/components/responses/Success' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.put(
   '/:id/share/:shareId',
@@ -217,41 +136,22 @@ router.put(
  *   delete:
  *     summary: Unshare a note
  *     tags: [Note Sharing]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *       - in: path
  *         name: shareId
  *         required: true
  *         schema:
  *           type: integer
- *         description: Share ID
- *         example: 1
  *     responses:
- *       200:
- *         description: Note unshared successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note unshared successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Note or share not found
+ *       200: { $ref: '#/components/responses/Success' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.delete(
   '/:id/share/:shareId',

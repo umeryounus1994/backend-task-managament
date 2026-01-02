@@ -395,10 +395,36 @@ curl -X POST http://localhost:3001/api/notes \
 }
 ```
 
-#### Get All Notes
+#### Get All Notes (with Pagination)
 ```bash
+# Get first page with default limit (10 items)
 curl http://localhost:3001/api/notes \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Get second page with 20 items per page
+curl "http://localhost:3001/api/notes?page=2&limit=20" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**Expected Response (200 OK) with Pagination:**
+```json
+{
+  "success": true,
+  "message": "Notes retrieved successfully",
+  "data": {
+    "notes": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "totalPages": 3,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    },
+    "ownedCount": 20,
+    "sharedCount": 5
+  }
+}
 ```
 
 #### Get Single Note
@@ -421,16 +447,66 @@ curl -X PUT http://localhost:3001/api/notes/1 \
 
 **Important**: Always include the current `version` number to prevent conflicts.
 
-#### Search Notes
+#### Search Notes (with Pagination)
 ```bash
+# Search with default pagination
 curl "http://localhost:3001/api/notes/search?keywords=note" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Search with custom pagination
+curl "http://localhost:3001/api/notes/search?keywords=test&page=1&limit=5" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-#### Get Note Versions
+**Expected Response (200 OK) with Pagination:**
+```json
+{
+  "success": true,
+  "message": "Notes found",
+  "data": {
+    "notes": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 5,
+      "total": 12,
+      "totalPages": 3,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    },
+    "keywords": "test"
+  }
+}
+```
+
+#### Get Note Versions (with Pagination)
 ```bash
+# Get versions with default pagination
 curl http://localhost:3001/api/notes/1/versions \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Get versions with custom pagination
+curl "http://localhost:3001/api/notes/1/versions?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**Expected Response (200 OK) with Pagination:**
+```json
+{
+  "success": true,
+  "message": "Note versions retrieved successfully",
+  "data": {
+    "noteId": 1,
+    "versions": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 5,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  }
+}
 ```
 
 #### Revert Note
@@ -458,10 +534,34 @@ curl -X POST http://localhost:3001/api/notes/1/share \
   }'
 ```
 
-#### Get Shared Notes
+#### Get Shared Notes (with Pagination)
 ```bash
+# Get shared notes with default pagination
 curl http://localhost:3001/api/notes/shared \
   -H "Authorization: Bearer USER_2_ACCESS_TOKEN"
+
+# Get shared notes with custom pagination
+curl "http://localhost:3001/api/notes/shared?page=1&limit=15" \
+  -H "Authorization: Bearer USER_2_ACCESS_TOKEN"
+```
+
+**Expected Response (200 OK) with Pagination:**
+```json
+{
+  "success": true,
+  "message": "Shared notes retrieved successfully",
+  "data": {
+    "notes": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 15,
+      "total": 8,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  }
+}
 ```
 
 #### Update Share Permission
@@ -483,10 +583,35 @@ curl -X POST http://localhost:3001/api/notes/1/attachments \
   -F "file=@/path/to/your/image.jpg"
 ```
 
-#### List Attachments
+#### List Attachments (with Pagination)
 ```bash
+# Get attachments with default pagination
 curl http://localhost:3001/api/notes/1/attachments \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# Get attachments with custom pagination
+curl "http://localhost:3001/api/notes/1/attachments?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**Expected Response (200 OK) with Pagination:**
+```json
+{
+  "success": true,
+  "message": "Attachments retrieved successfully",
+  "data": {
+    "noteId": 1,
+    "attachments": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 8,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  }
+}
 ```
 
 #### Delete Attachment
@@ -593,7 +718,35 @@ curl -X PUT http://localhost:3001/api/notes/1 \
   -d '{"title":"Trying to edit","version":1}'
 ```
 
-### Scenario 4: Search Test
+### Scenario 4: Pagination Test
+
+Test pagination functionality:
+
+```bash
+# Test default pagination (page=1, limit=10)
+curl "http://localhost:3001/api/notes?page=1" \
+  -H "Authorization: Bearer TOKEN" | jq '.data.pagination'
+
+# Test custom pagination
+curl "http://localhost:3001/api/notes?page=2&limit=5" \
+  -H "Authorization: Bearer TOKEN" | jq '.data.pagination'
+
+# Test invalid pagination (should return 400)
+curl "http://localhost:3001/api/notes?page=0" \
+  -H "Authorization: Bearer TOKEN"
+
+curl "http://localhost:3001/api/notes?limit=200" \
+  -H "Authorization: Bearer TOKEN"
+```
+
+**Expected Results:**
+- Default pagination returns page 1 with limit 10
+- Custom pagination respects page and limit parameters
+- Invalid page (< 1) returns `400 Bad Request`
+- Invalid limit (> 100) returns `400 Bad Request`
+- Pagination metadata includes `total`, `totalPages`, `hasNextPage`, `hasPreviousPage`
+
+### Scenario 5: Search Test
 
 Test full-text search with various keywords:
 
@@ -765,17 +918,20 @@ Use this checklist to verify all functionality:
 
 ### Notes CRUD
 - [ ] Create note works
-- [ ] Get all notes returns owned + shared
+- [ ] Get all notes returns owned + shared (with pagination)
 - [ ] Get single note works
 - [ ] Update note increments version
 - [ ] Delete note (soft delete) works
 - [ ] Deleted notes don't appear in list
+- [ ] Pagination works correctly (page, limit, total, totalPages)
+- [ ] Pagination edge cases handled (invalid page/limit)
 
 ### Versioning
 - [ ] Version history is created on create/update
-- [ ] Get versions returns all versions
+- [ ] Get versions returns all versions (with pagination)
 - [ ] Revert to version works
 - [ ] Revert creates new version
+- [ ] Pagination works for version history
 
 ### Concurrency
 - [ ] Concurrent update returns 409 Conflict
@@ -797,6 +953,12 @@ Use this checklist to verify all functionality:
 - [ ] Cache invalidates on delete
 
 ### Sharing
+- [ ] Share note with read permission
+- [ ] Share note with edit permission
+- [ ] Get shared notes (with pagination)
+- [ ] Update share permission
+- [ ] Unshare note
+- [ ] Verify pagination in shared notes list
 - [ ] Share note with user works
 - [ ] Shared note appears in recipient's list
 - [ ] Read-only permission prevents editing
@@ -805,6 +967,12 @@ Use this checklist to verify all functionality:
 - [ ] Unshare works
 
 ### Attachments
+- [ ] Upload image attachment
+- [ ] Upload video attachment
+- [ ] Upload PDF attachment
+- [ ] List attachments (with pagination)
+- [ ] Delete attachment
+- [ ] Verify pagination in attachments list
 - [ ] Upload file works
 - [ ] List attachments works
 - [ ] Delete attachment works

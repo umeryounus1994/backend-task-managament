@@ -229,18 +229,18 @@ docker-compose build --no-cache
 
 ### Notes
 
-- `GET /api/notes` - Get all user notes
+- `GET /api/notes` - Get all user notes (paginated)
 - `POST /api/notes` - Create a new note
 - `GET /api/notes/:id` - Get a single note
 - `PUT /api/notes/:id` - Update a note (with optimistic locking)
 - `DELETE /api/notes/:id` - Soft delete a note
-- `GET /api/notes/search?keywords=...` - Full-text search
-- `GET /api/notes/:id/versions` - Get note versions
+- `GET /api/notes/search?keywords=...` - Full-text search (paginated)
+- `GET /api/notes/:id/versions` - Get note versions (paginated)
 - `POST /api/notes/:id/revert/:versionId` - Revert to a version
 
 ### Note Sharing
 
-- `GET /api/notes/shared` - Get notes shared with you
+- `GET /api/notes/shared` - Get notes shared with you (paginated)
 - `POST /api/notes/:id/share` - Share a note
 - `PUT /api/notes/:id/share/:shareId` - Update share permission
 - `DELETE /api/notes/:id/share/:shareId` - Unshare a note
@@ -248,8 +248,91 @@ docker-compose build --no-cache
 ### Attachments
 
 - `POST /api/notes/:id/attachments` - Upload attachment
-- `GET /api/notes/:id/attachments` - List attachments
+- `GET /api/notes/:id/attachments` - List attachments (paginated)
 - `DELETE /api/notes/:id/attachments/:attachmentId` - Delete attachment
+
+## Pagination
+
+All list endpoints support pagination to efficiently handle large datasets. Pagination is implemented using query parameters.
+
+### Pagination Parameters
+
+- `page` (optional, default: 1) - Page number (must be >= 1)
+- `limit` (optional, default: 10) - Number of items per page (must be between 1 and 100)
+
+### Pagination Response Format
+
+Paginated endpoints return a response with the following structure:
+
+```json
+{
+  "success": true,
+  "message": "Notes retrieved successfully",
+  "data": {
+    "notes": [...],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 25,
+      "totalPages": 3,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    }
+  }
+}
+```
+
+### Pagination Metadata
+
+- `page` - Current page number
+- `limit` - Number of items per page
+- `total` - Total number of items across all pages
+- `totalPages` - Total number of pages
+- `hasNextPage` - Boolean indicating if there's a next page
+- `hasPreviousPage` - Boolean indicating if there's a previous page
+
+### Paginated Endpoints
+
+The following endpoints support pagination:
+
+1. **GET /api/notes** - Get all user notes (includes owned and shared notes)
+2. **GET /api/notes/search** - Search notes
+3. **GET /api/notes/:id/versions** - Get note versions
+4. **GET /api/notes/shared** - Get shared notes
+5. **GET /api/notes/:id/attachments** - Get note attachments
+
+### Pagination Examples
+
+```bash
+# Get first page with default limit (10 items)
+GET /api/notes?page=1
+
+# Get second page with 20 items per page
+GET /api/notes?page=2&limit=20
+
+# Search with pagination
+GET /api/notes/search?keywords=test&page=1&limit=5
+
+# Get note versions with pagination
+GET /api/notes/1/versions?page=1&limit=10
+
+# Get shared notes with pagination
+GET /api/notes/shared?page=1&limit=15
+
+# Get attachments with pagination
+GET /api/notes/1/attachments?page=1&limit=10
+```
+
+### Error Handling
+
+Invalid pagination parameters will return a `400 Bad Request` error:
+
+```json
+{
+  "success": false,
+  "message": "Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100."
+}
+```
 
 ## Testing
 

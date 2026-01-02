@@ -113,7 +113,22 @@ const shareNote = async (req, res, next) => {
 const getSharedNotes = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const cacheKey = `notes:shared:user:${userId}`;
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.'
+      });
+    }
+
+    // Build cache key with pagination
+    const cacheKey = `notes:shared:user:${userId}:page:${page}:limit:${limit}`;
 
     // Try to get from cache
     const cachedData = await getCache(cacheKey);
@@ -125,7 +140,24 @@ const getSharedNotes = async (req, res, next) => {
       });
     }
 
-    // Get all notes shared with this user
+    // Get total count
+    const total = await NoteShare.count({
+      where: {
+        sharedWithUserId: userId
+      },
+      include: [
+        {
+          model: Note,
+          as: 'note',
+          where: {
+            isDeleted: false
+          },
+          required: true
+        }
+      ]
+    });
+
+    // Get paginated notes shared with this user
     const shares = await NoteShare.findAll({
       where: {
         sharedWithUserId: userId
@@ -147,7 +179,9 @@ const getSharedNotes = async (req, res, next) => {
           attributes: ['id', 'userId', 'title', 'content', 'version', 'createdAt', 'updatedAt']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
     });
 
     const sharedNotes = shares.map(share => ({
@@ -157,9 +191,19 @@ const getSharedNotes = async (req, res, next) => {
       sharedBy: share.note.user
     }));
 
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+
     const responseData = {
       notes: sharedNotes,
-      count: sharedNotes.length
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
     };
 
     // Cache for 1 hour

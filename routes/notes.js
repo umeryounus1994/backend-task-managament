@@ -13,52 +13,14 @@ router.use(authenticate);
  *   post:
  *     summary: Create a new note
  *     tags: [Notes]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateNoteRequest'
- *           example:
- *             title: My First Note
- *             content: This is the content of my note
+ *         'application/json': { schema: { $ref: '#/components/schemas/CreateNoteRequest' } }
  *     responses:
- *       201:
- *         description: Note created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note created successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     note:
- *                       $ref: '#/components/schemas/Note'
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
- *       401:
- *         description: Unauthorized
+ *       201: { $ref: '#/components/responses/Created' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.post(
   '/',
@@ -85,35 +47,40 @@ router.post(
  *     tags: [Notes]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
  *       200:
- *         description: Notes retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Notes retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     notes:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Note'
- *                     count:
- *                       type: integer
- *                       example: 5
+ *         $ref: '#/components/responses/Success'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   '/',
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
+  ],
   notesController.getAllNotes
 );
 
@@ -131,50 +98,26 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
- *         description: Search keywords
- *         example: JavaScript tutorial
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
  *       200:
- *         description: Notes found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Notes found
- *                 data:
- *                   type: object
- *                   properties:
- *                     notes:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Note'
- *                     count:
- *                       type: integer
- *                       example: 3
- *                     keywords:
- *                       type: string
- *                       example: JavaScript tutorial
+ *         $ref: '#/components/responses/Success'
  *       400:
- *         description: Keywords parameter is required
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Keywords parameter is required
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   '/search',
@@ -182,7 +125,15 @@ router.get(
     query('keywords')
       .notEmpty()
       .withMessage('Keywords parameter is required')
-      .trim()
+      .trim(),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
   ],
   notesController.searchNotes
 );
@@ -201,42 +152,13 @@ router.get(
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *     responses:
  *       200:
- *         description: Note retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     note:
- *                       $ref: '#/components/schemas/Note'
+ *         $ref: '#/components/responses/Success'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Note not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note not found
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get(
   '/:id',
@@ -256,95 +178,30 @@ router.get(
  *     tags: [Notes]
  *     security:
  *       - bearerAuth: []
- *     description: Updates a note with optimistic locking. Requires the current version number to prevent concurrent modification conflicts.
+ *     description: Updates a note with optimistic locking. Requires the current version number.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/UpdateNoteRequest'
- *           example:
- *             title: Updated Note Title
- *             content: Updated content
- *             version: 1
  *     responses:
  *       200:
- *         description: Note updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note updated successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     note:
- *                       $ref: '#/components/schemas/Note'
+ *         $ref: '#/components/responses/Success'
  *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Note not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note not found
+ *         $ref: '#/components/responses/NotFound'
  *       409:
- *         description: Conflict - Note has been modified by another user
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note has been modified by another user. Please refresh and try again.
- *                 data:
- *                   type: object
- *                   properties:
- *                     currentVersion:
- *                       type: integer
- *                       example: 2
- *                     providedVersion:
- *                       type: integer
- *                       example: 1
+ *         $ref: '#/components/responses/Conflict'
  */
 router.put(
   '/:id',
@@ -385,37 +242,13 @@ router.put(
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *     responses:
  *       200:
- *         description: Note deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note deleted successfully
+ *         $ref: '#/components/responses/Success'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Note not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note not found
+ *         $ref: '#/components/responses/NotFound'
  */
 router.delete(
   '/:id',
@@ -441,71 +274,43 @@ router.delete(
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
  *       200:
- *         description: Note versions retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note versions retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     noteId:
- *                       type: integer
- *                       example: 1
- *                     versions:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: integer
- *                           noteId:
- *                             type: integer
- *                           title:
- *                             type: string
- *                           content:
- *                             type: string
- *                           version:
- *                             type: integer
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                     count:
- *                       type: integer
- *                       example: 5
+ *         $ref: '#/components/responses/Success'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Note not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note not found
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get(
   '/:id/versions',
   [
     param('id')
       .isInt({ min: 1 })
-      .withMessage('Note ID must be a positive integer')
+      .withMessage('Note ID must be a positive integer'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
   ],
   notesController.getNoteVersions
 );
@@ -525,55 +330,18 @@ router.get(
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *       - in: path
  *         name: versionId
  *         required: true
  *         schema:
  *           type: integer
- *         description: Version ID to revert to
- *         example: 3
  *     responses:
  *       200:
- *         description: Note reverted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Note reverted successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     note:
- *                       $ref: '#/components/schemas/Note'
- *                     revertedFromVersion:
- *                       type: integer
- *                       example: 2
- *                     newVersion:
- *                       type: integer
- *                       example: 4
+ *         $ref: '#/components/responses/Success'
  *       401:
- *         description: Unauthorized
+ *         $ref: '#/components/responses/Unauthorized'
  *       404:
- *         description: Note or version not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Note not found
+ *         $ref: '#/components/responses/NotFound'
  */
 router.post(
   '/:id/revert/:versionId',

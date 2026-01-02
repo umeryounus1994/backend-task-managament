@@ -394,6 +394,36 @@ const options = {
         }
       },
       responses: {
+        Success: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string' },
+                  data: { type: 'object' }
+                }
+              }
+            }
+          }
+        },
+        Created: {
+          description: 'Resource created successfully',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string' },
+                  data: { type: 'object' }
+                }
+              }
+            }
+          }
+        },
         BadRequest: {
           description: 'Bad Request - Invalid input or validation error',
           content: {
@@ -410,10 +440,6 @@ const options = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'Authentication required. Please provide a valid token.'
               }
             }
           }
@@ -424,10 +450,6 @@ const options = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'Access denied'
               }
             }
           }
@@ -438,10 +460,6 @@ const options = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'Resource not found'
               }
             }
           }
@@ -452,10 +470,6 @@ const options = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'Resource already exists'
               }
             }
           }
@@ -466,10 +480,6 @@ const options = {
             'application/json': {
               schema: {
                 $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'An unexpected error occurred'
               }
             }
           }

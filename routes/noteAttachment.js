@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { param } = require('express-validator');
+const { param, query } = require('express-validator');
 const noteAttachmentController = require('../controllers/noteAttachmentController');
 const { authenticate } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -14,54 +14,28 @@ router.use(authenticate);
  *   post:
  *     summary: Upload an attachment to a note
  *     tags: [Note Attachments]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *     requestBody:
- *       required: true
  *       content:
  *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - file
+ *             required: [file]
  *             properties:
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: File to upload (images, videos, PDFs)
  *     responses:
- *       201:
- *         description: Attachment uploaded successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Attachment uploaded successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     attachment:
- *                       $ref: '#/components/schemas/NoteAttachment'
- *       400:
- *         description: No file uploaded or invalid file type
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Note not found
+ *       201: { $ref: '#/components/responses/Created' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.post(
   '/:id/attachments',
@@ -80,54 +54,47 @@ router.post(
  *   get:
  *     summary: Get all attachments for a note
  *     tags: [Note Attachments]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
- *       200:
- *         description: Attachments retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Attachments retrieved successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     noteId:
- *                       type: integer
- *                     attachments:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/NoteAttachment'
- *                     count:
- *                       type: integer
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Access denied
- *       404:
- *         description: Note not found
+ *       200: { $ref: '#/components/responses/Success' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       403: { $ref: '#/components/responses/Forbidden' }
+ *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.get(
   '/:id/attachments',
   [
     param('id')
       .isInt({ min: 1 })
-      .withMessage('Note ID must be a positive integer')
+      .withMessage('Note ID must be a positive integer'),
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
   ],
   noteAttachmentController.getAttachments
 );
@@ -138,41 +105,22 @@ router.get(
  *   delete:
  *     summary: Delete an attachment
  *     tags: [Note Attachments]
- *     security:
- *       - bearerAuth: []
+ *     security: [{ bearerAuth: [] }]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: Note ID
- *         example: 1
  *       - in: path
  *         name: attachmentId
  *         required: true
  *         schema:
  *           type: integer
- *         description: Attachment ID
- *         example: 1
  *     responses:
- *       200:
- *         description: Attachment deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Attachment deleted successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Note or attachment not found
+ *       200: { $ref: '#/components/responses/Success' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.delete(
   '/:id/attachments/:attachmentId',

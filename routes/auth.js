@@ -10,60 +10,12 @@ const authController = require('../controllers/authController');
  *     summary: Register a new user
  *     tags: [Authentication]
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RegisterRequest'
- *           example:
- *             email: user@example.com
- *             password: password123
+ *         'application/json': { schema: { $ref: '#/components/schemas/RegisterRequest' } }
  *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: User registered successfully. Please login to get access token.
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
- *       409:
- *         description: User already exists
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: User with this email already exists
+ *       201: { $ref: '#/components/responses/Created' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       409: { $ref: '#/components/responses/Conflict' }
  */
 router.post(
   '/register',
@@ -86,57 +38,12 @@ router.post(
  *     summary: Login user
  *     tags: [Authentication]
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LoginRequest'
- *           example:
- *             email: user@example.com
- *             password: password123
+ *         'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } }
  *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Login successful
- *                 data:
- *                   $ref: '#/components/schemas/AuthResponseData'
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
- *       401:
- *         description: Invalid credentials
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Invalid email or password
+ *       200: { $ref: '#/components/responses/Success' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.post(
   '/login',
@@ -158,58 +65,13 @@ router.post(
  *   post:
  *     summary: Refresh access token
  *     tags: [Authentication]
- *     description: Use refresh token to get a new access token and refresh token
  *     requestBody:
- *       required: true
  *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RefreshRequest'
- *           example:
- *             refreshToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *         'application/json': { schema: { $ref: '#/components/schemas/RefreshRequest' } }
  *     responses:
- *       200:
- *         description: Token refreshed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Token refreshed successfully
- *                 data:
- *                   $ref: '#/components/schemas/TokenResponseData'
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
- *       401:
- *         description: Invalid or expired refresh token
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Invalid or expired refresh token
+ *       200: { $ref: '#/components/responses/Success' }
+ *       400: { $ref: '#/components/responses/BadRequest' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.post(
   '/refresh',

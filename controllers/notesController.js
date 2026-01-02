@@ -72,7 +72,22 @@ const createNote = async (req, res, next) => {
 const getAllNotes = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const cacheKey = `notes:user:${userId}`;
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.'
+      });
+    }
+
+    // Build cache key with pagination
+    const cacheKey = `notes:user:${userId}:page:${page}:limit:${limit}`;
 
     // Try to get from cache
     const cachedData = await getCache(cacheKey);
@@ -135,9 +150,21 @@ const getAllNotes = async (req, res, next) => {
       return new Date(b.updatedAt) - new Date(a.updatedAt);
     });
 
+    // Calculate pagination metadata
+    const total = allNotes.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginatedNotes = allNotes.slice(offset, offset + limit);
+
     const responseData = {
-      notes: allNotes,
-      count: allNotes.length,
+      notes: paginatedNotes,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      },
       ownedCount: ownedNotes.length,
       sharedCount: sharedNotes.length
     };
@@ -458,6 +485,19 @@ const getNoteVersions = async (req, res, next) => {
     const { id } = req.params;
     const userId = req.user.id;
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.'
+      });
+    }
+
     // Find the note
     const note = await Note.findOne({
       where: {
@@ -494,14 +534,26 @@ const getNoteVersions = async (req, res, next) => {
       // Shared users with read or edit permission can view versions
     }
 
-    // Get all versions for this note
+    // Get total count of versions
+    const total = await NoteVersion.count({
+      where: {
+        noteId: id
+      }
+    });
+
+    // Get paginated versions for this note
     const versions = await NoteVersion.findAll({
       where: {
         noteId: id
       },
       order: [['version', 'DESC']],
-      attributes: ['id', 'noteId', 'title', 'content', 'version', 'createdAt']
+      attributes: ['id', 'noteId', 'title', 'content', 'version', 'createdAt'],
+      limit,
+      offset
     });
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
@@ -509,7 +561,14 @@ const getNoteVersions = async (req, res, next) => {
       data: {
         noteId: parseInt(id),
         versions,
-        count: versions.length
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        }
       }
     });
   } catch (error) {
@@ -648,9 +707,22 @@ const searchNotes = async (req, res, next) => {
       });
     }
 
-    // Build cache key
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100.'
+      });
+    }
+
+    // Build cache key with pagination
     const trimmedKeywords = keywords.trim();
-    const cacheKey = `notes:search:user:${userId}:keywords:${trimmedKeywords.toLowerCase()}`;
+    const cacheKey = `notes:search:user:${userId}:keywords:${trimmedKeywords.toLowerCase()}:page:${page}:limit:${limit}`;
 
     // Try to get from cache
     const cachedData = await getCache(cacheKey);
@@ -669,9 +741,30 @@ const searchNotes = async (req, res, next) => {
     
     // Debug: Log search parameters
     if (process.env.NODE_ENV === 'development') {
-      console.log('Search params:', { userId, searchTerm, searchPattern });
+      console.log('Search params:', { userId, searchTerm, searchPattern, page, limit });
     }
     
+    // Get total count
+    const total = await Note.count({
+      where: {
+        userId,
+        isDeleted: false,
+        [Op.or]: [
+          {
+            title: {
+              [Op.like]: searchPattern
+            }
+          },
+          {
+            content: {
+              [Op.like]: searchPattern
+            }
+          }
+        ]
+      }
+    });
+    
+    // Get paginated results
     const notes = await Note.findAll({
       where: {
         userId,
@@ -691,17 +784,29 @@ const searchNotes = async (req, res, next) => {
       },
       attributes: ['id', 'userId', 'title', 'content', 'version', 'createdAt', 'updatedAt'],
       order: [['updatedAt', 'DESC']],
+      limit,
+      offset,
       raw: true // Return plain objects instead of Sequelize instances
     });
     
     // Debug: Log results
     if (process.env.NODE_ENV === 'development') {
-      console.log('Search results count:', notes ? notes.length : 0);
+      console.log('Search results count:', notes ? notes.length : 0, 'Total:', total);
     }
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
 
     const responseData = {
       notes: notes || [],
-      count: notes ? notes.length : 0,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      },
       keywords: trimmedKeywords
     };
 
